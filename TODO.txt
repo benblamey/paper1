@@ -1,0 +1,46 @@
+
+
+say: we quantify bounds of good performance
+
+Crucially, we are able to quantify the bounds of regions of good performance for each setup -- results which should be useful to anyone implementing streaming applications in novel contexts, especially those outside typical enterprise use-cases.
+
+
+caveat - config spark to do anything, opt config options, use different integrations
+-- this is more out of box compare
+-- +ve of HIO
+
+
+
+- ref fig 2 in experimental setup
+
+- refer back to fig 6 in concs
+
+- edit conc section. - flabby
+
+equations to explain theo bounds?
+
+figure vs Figure ?
+
+
+plots -- legend labs?
+- different x's for gryscle
+
+- add lines to prediction plot?
+
+- add additional prediction for performance profile?
+
+DPI for normed - fig 6.
+
+
+- page count?
+- submission target?
+- upload arXiv ?
+
+
+---DONE---
+
+- A B C for figure 
+
+fig 6 -- show as fraction of max? --- No
+
+- rescue 'lesrning cuve/soft' para from previous version - DONE?
