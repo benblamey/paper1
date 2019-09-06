@@ -25,6 +25,8 @@
 \usepackage{color}
 \usepackage{caption}
 
+\usepackage{multirow}
+
 %\subfigtopskip=0pt
 %\subfigcapskip=0pt
 %\subfigbottomskip=0pt
@@ -59,6 +61,9 @@ Email: \{Ben.Blamey, Andreas.Hellander, Salman.Toor\}@it.uu.se
 }
 
 \maketitle
+% force page numbers for 'bench' submission
+\thispagestyle{plain}
+\pagestyle{plain}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{abstract}
@@ -82,12 +87,15 @@ Email: \{Ben.Blamey, Andreas.Hellander, Salman.Toor\}@it.uu.se
 %%and present a benchmarking toolset developed for this study.
 %discuss challenges in measuring maximum throughput 
 
-This paper presents a benchmark of stream processing throughput comparing Apache Spark Streaming (under file-, TCP socket- and Kafka-based stream integration), with a prototype P2P stream processing framework, \emph{HarmonicIO}.
-Maximum throughput for a spectrum of stream processing loads are measured, specifically, those with large message sizes (up to 10MB), and heavy CPU loads -- more typical of scientific computing use cases (such as microscopy), than enterprise contexts.
-A detailed exploration of the performance characteristics with these streaming sources, under varying loads, reveals an interplay of performance trade-offs, uncovering the boundaries of good performance for each framework and streaming source integration. We compare with theoretic bounds in each case.
-Based on these results, we suggest which frameworks and streaming sources are likely to offer good performance for a given load.
-Broadly, the advantages of Spark's rich feature set comes at a cost of sensitivity to message size in particular -- common stream source integrations can perform poorly in the 1MB-10MB range.
-The simplicity of HarmonicIO offers more robust performance in this region, especially for raw CPU utilization.
+
+% This paper presents a benchmark of stream processing throughput comparing Apache Spark Streaming (under file-, TCP socket- and Kafka-based stream integration), with a prototype P2P stream processing framework, \emph{HarmonicIO}.
+% Maximum throughput for a spectrum of stream processing loads are measured, specifically, those with large message sizes (up to 10MB), and heavy CPU loads -- more typical of scientific computing use cases (such as microscopy), than enterprise contexts.
+% A detailed exploration of the performance characteristics with these streaming sources, under varying loads, reveals an interplay of performance trade-offs, uncovering the boundaries of good performance for each framework and streaming source integration. We compare with theoretic bounds in each case.
+% Based on these results, we suggest which frameworks and streaming sources are likely to offer good performance for a given load.
+% Broadly, the advantages of Spark's rich feature set comes at a cost of sensitivity to message size in particular -- common stream source integrations can perform poorly in the 1MB-10MB range.
+% The simplicity of HarmonicIO offers more robust performance in this region, especially for raw CPU utilization.
+
+Many scientific computing applications generate streams where message size can exceed one megabyte, in contrast with smaller message sizes in enterprise contexts (order kilobytes, often XML or JSON). Furthermore, the processing cost of messages in scientific computing applications are usually an order of magnitude higher than in typical enterprise applications. Frameworks such as Apache Spark offer high throughput processing of streams -- with such ‘enterprise’ characteristics, as well as scalability, with high resilience and many other desirable features.   Motivated by the development of near real-time image processing pipelines for roboticized microscopy, we evaluate the suitability of Apache Spark for streams more typical of scientific computing applications, those with large message sizes (up to 10MB), and heavy per-message CPU load, under typical stream integrations. For comparison, we benchmark a P2P stream processing framework, \emph{HarmonicIO}, developed in-house. Our study reveals a complex interplay of performance trade-offs, revealing the boundaries of good performance for each framework and integration over a wide domain of application loads. Based on these results, we suggest which are likely to offer good performance for a given load. Broadly, the advantages of Spark's rich features makes its performance sensitive to message size in particular, whereas the simplicity of HarmonicIO offers more robust performance, and better CPU utilization.
 
 
 
@@ -130,33 +138,56 @@ The simplicity of HarmonicIO offers more robust performance in this region, espe
 
 %\textcolor{blue}{How might we do online stream processing? There are lots of frameworks for stream processing}
 
-A number of stream processing frameworks have gained wide adoption over the last decade or so (Apache Flink~\cite{carboneApacheFlinkStream2015}, Apache Spark Streaming~\cite{zahariaApacheSparkUnified2016}, Flume~\cite{apacheflumeApacheFlume2016}); suitable for high-volume, high-reliability stream processing workloads. Their development has been motivated by analysis of data from cloud, web and mobile applications. For example, Apache Flume is designed for the analysis of server application log data. Apache Spark improves upon the Apache Hadoop framework~\cite{ApacheHadoop2011} for distributed computing, and was later extended with streaming support. Apache Flink was later developed primarily for stream processing.
+Several stream processing frameworks have gained wide adoption over the last decade or so.
+%(Apache Flink~\cite{carboneApacheFlinkStream2015}, Apache Spark Streaming~\cite{zahariaApacheSparkUnified2016}, Flume~\cite{apacheflumeApacheFlume2016}); suitable for high-volume, high-reliability stream processing workloads. Their development has been motivated by analysis of data from cloud, web and mobile applications. 
+%For example, 
+Apache Flume is designed for the analysis of server application logs. Apache Spark improves upon the Apache Hadoop framework~\cite{ApacheHadoop2011} for distributed computing, and was later extended with streaming support~\cite{zahariaApacheSparkUnified2016}. Apache Flink~\cite{carboneApacheFlinkStream2015} was later developed primarily for stream processing.
 % (in Flink, batching is handled as a special case of streaming, whilst in Spark the opposite is true). 
 
 %\textcolor{blue}{their features look attractive!}
 
 %There are some very popular, high quality frameworks for distributed stream processing (of small messages) their features:
 These frameworks boast 
-performance, scalability, data security, processing guarantees, and efficient, parallelized computation; together with high-level stream processing APIs (augmenting familiar map/reduce with stream-specific functionality such as windowing). All of which makes them attractive for scientific computing -- including imaging applications in the life-sciences, and simulation output more generally.
+excellent performance, scalability, data security, processing guarantees, and efficient, parallelized computation; together with high-level stream processing APIs (augmenting familiar map/reduce with stream-specific functionality such as windowing). These features are attractive for scientific computing -- including imaging applications in the life-sciences, and simulation output more generally.
+
+
+%Apache Spark in particular...
+%Apache Spark was originally developed for batch operations, with a focus on in-memory caching of intermediate results to improve on the performance of Hadoop, where data is typically written to a distributed file system and read at each stage. Spark facilitates a more interactive user experience, allowing more ad-hoc analysis, something which was difficult with Hadoop. This smart caching behavior is combined with functionality to track the lineage of the calculations, to support deterministic re-calculation in the event of errors and node failure, together with a host of other features, built around the Resilient Distributed Dataset (RDD)~\cite{Zaharia:2012:RDD:2228298.2228301}. 
+%The core RDD Spark API ~\cite{Zaharia:2012:RDD:2228298.2228301} allows for distributed computation, whilst recording the provenance and derivation of data between calculations, thus allowing for deterministic re-computation in cases of error and node failure, with a high level API that makes such details transparent to the application developer. 
+
+
+Previous studies have shown that these frameworks are capable of processing message streams on the order of 1 million or more messages per second, but focus on enterprise use cases with textual rather than binary content, and of message size perhaps a few KB. Additionally, the computational cost of processing an individual message may be relatively small (e.g. parsing JSON, and applying some business logic). By contrast, in scientific computing domains messages can be much larger (order of several MB).
+
+Due to the different design priorities for streaming frameworks, a single benchmark will not be adequate to cover various features. However, an alternative approach is to use a standard use case to compare different frameworks. The presented study highlights the needs of scientific communities, importance of streaming frameworks for scientific workloads and the difference in the inherent nature of the scientific datasets as compared to the enterprise context.
+
+We selected Apache Spark for this study because of its popularity, and to allow comparison to earlier studies. Its core \emph{RDD} API~\cite{Zaharia:2012:RDD:2228298.2228301} allows for deterministic re-computation in cases of error and node failure, various high-level APIs which make such details transparent to the application developer. Apache Spark can scale successfully to 1000s of nodes~\cite{xinApacheSparkFastest2014}. Spark Streaming was a later addition, leveraging the batch functionality for a streaming context by creating a new batch every few seconds (the batch interval). As with batch operations, data is further subdivided into partitions for distribution and scheduling. The newer \emph{Direct DStream} integration approach is used with Kafka in this study. 
+%The Streaming API augments map/reduce operators (familiar from a batch processing context) with new functionality specifically for streams, such as windowing. 
+
+%Stream processing pipelines are built from these operators, and the frameworks themselves manage the processing parallelization and data transfer -- with various guarantees in relation to fault handling. 
+%These features, and the maturity of the frameworks themselves, together with the extent of their support community is attractive for our microscopy use case, and indeed scientific computing applications more widely.
+
+
+
+
 
 %\textcolor{blue}{challenges adopting these in a scientific computing context? typical setup -- lots of tiny JSON documents:}
-Previous studies have shown that these frameworks are capable of processing message streams on the order of 1 million or more messages per second, but focus on enterprise use cases with textual rather than binary content, and of message size perhaps a few KB. Additionally, the computational cost of processing an individual message may be relatively small (e.g. parsing JSON, and applying some business logic). By contrast, in scientific computing domains messages can be much larger (order of several MB).
+
 
 %querying an ML model).
 
 %\textcolor{blue}{ we want to do online processing of an image stream for our microscopy application}
 
 Our motivating use case 
-is the development of a cloud pipeline for the processing of streams of microscopy images, for biomedical research applications. Existing systems for working with such datasets have largely focused on offline processing: our online processing (processing the `live' stream), 
+is the development of a cloud pipeline for the processing of streams of microscopy images. Existing systems for working with such datasets have largely focused on offline processing: our online processing (processing the `live' stream), 
 is relatively novel for the image microscopy domain. %, with a growing interest in automation in that sector (citation?).
 %Indeed, adoption of such frameworks in IoT contexts is growing rapidly. 
 %\textcolor{blue}{ whats the challenge?}
-Electron microscopes generate high-frequency streams of large, high-resolution image files (message sizes 1-10Mb), and feature extraction is computationally intensive. This is typical of many scientific computing use cases: where files have binary content, 
-with execution time dominated by the per-message `map' stage.
+Electron microscopes generate high-frequency streams of large, high-resolution image files (message sizes 1-10MB), and feature extraction is computationally intensive. This is typical of many scientific computing use cases: where files have binary content, 
+with execution time dominated by the per-message `map' stage. Our pipeline consists of a single `map' operator. 
 %analysis of each unit might be independent (i.e. map only) -- well-suited to parallel processing at large scale.
 %Files can be of any size, but in an online streaming context,
 %Limiting ourselves to streaming (rather than batch) processing, we might consider file sizes not exceeding 10MB or so.%\footnote{~This equates to the order of 1 sec transfer over a 1GB/s connection.}
-Thereby, we investigate how well the performance of enterprise-grade stream processing frameworks (such as Apache Spark) translates to loads more characteristic of scientific computing, for example, microscopy image stream processing, by benchmarking under a spectrum of conditions representative of both. We do this by varying both the processing cost of the map stage, and the message size to expand on previous studies.
+Thereby, we investigate how well the performance of enterprise stream processing frameworks (such as Apache Spark) translates to loads more characteristic of scientific computing, for example, microscopy image stream processing, by benchmarking under a spectrum of conditions representative of both. We do this by varying both the processing cost of the map stage, and the message size to expand on previous studies.
 %, and by extension similar workloads in a scientific context. 
 %In particular, we investigate how well typical configurations of these frameworks perform when processing streams of messages with sizes on the order of megabytes, and/or with larger per-message CPU cost -- contrasting with the focus in previous benchmarking studies on small messages and lighter map stages.
 
@@ -212,7 +243,7 @@ Our goal of \emph{online} analysis of the microscopy image stream allows both th
 %perhaps these properties 
 %A recent masters thesis characterized potential streaming rates for a production HCI platform at one of the industry collaborators in the [BLIND] %HASTE project, and found that current setups would be able to produce 38 frames/second with image sizes on the order of 10Mb \cite{lugnegaard2018building}. Clearly, such image streams have different characteristics than many enterprise stream analytics applications. In particular: % -- online analysis of this image stream is novel.
 %A recent masters thesis characterized potential streaming rates for a production HCI platform at one of the industry collaborators in the [BLIND] %HASTE project, and found that 
-Industry setups for high-content imaging can produce 38 frames/second with image sizes on the order of 10Mb \cite{lugnegaard2018building}. 
+Industry setups for high-content imaging can produce 38 frames/second with image sizes on the order of 10MB \cite{lugnegaard2018building}. 
 These image streams, like other scientific use cases, have different characteristics than many enterprise stream analytics applications: % -- online analysis of this image stream is novel.
 
 %The characteristics of scientific data streams generally differ from many typical enterprise applications:
@@ -225,9 +256,11 @@ These image streams, like other scientific use cases, have different characteris
 
 
 
-Our goal is to create a general pipeline able to process streams with these characteristics (and image streams in particular) with an emphasis on spatial-temporal analysis. Our SCaaS -- \emph{Scientific Computing as a Service} platform will to allow domain scientists to work with large datasets in an economically efficient way
+Our goal is to create a general pipeline able to process streams with these characteristics (and image streams in particular).
+%with an emphasis on spatial-temporal analysis. Our SCaaS -- \emph{Scientific Computing as a Service} platform will to allow domain scientists to work with large datasets in an economically efficient way
 %, through the use of hierarchical storage, for example, 
-without needing to manage infrastructure and software themselves. Apache Spark Streaming (ASS) has many of the features needed to build such a platform, with rich APIs suitable for scientific applications, and proven performance for small messages with computationally light map tasks. However, it is not clear how well this performance translates to the regimes of interest to the HASTE project. This paper explores the performance of ASS for a wide range of application characteristics, and compares it to a research prototype streaming framework HarmonicIO. %; developed within the [BLIND] project. 
+%without needing to manage infrastructure and software themselves. 
+Apache Spark Streaming (ASS) has many of the features needed to build such a platform, with rich APIs suitable for scientific applications, and proven performance for small messages with computationally light map tasks. However, it is not clear how well this performance translates to the regimes of interest to the HASTE project. This paper explores the performance of ASS for a wide range of application characteristics, and compares it to a research prototype streaming framework HarmonicIO. %; developed within the [BLIND] project. 
 
 %HASTE wil use the domain-specific interestingness functions (in the case of microscopy, image quality, and observed phenomena) to decouple decisions about storage and further processing from the scientific application itself, and the infrastructure used -- i.e. given a user-specified application and suitable interestingness measure, our SCaaS infrastructure can intelligently determine the allocation of compute and hierarchical storage resources, and selecting data for subsequent processing, without the user being concerned with details of available infrastructure. We hope to allow users to specify high-level trade-offs between economic cost, and storage/compute -- and leave the framework to reconcile this policy with the application and infrastructure. 
 
@@ -260,7 +293,7 @@ specifically for scientific computing workloads, has previously shown good perfo
 
 %Our benchmarking approach differs from these previous studies in that we look at performance characteristics as a continuum over the message size and map-function-cost parameter space. This allows us to reason about how variations in message size and processing load can be expected to affect performance. We compare Apache Spark (under various integration approaches) with HarmonicIO across this domain, to get an overview of performance characteristics as a function of these parameters.
 
-\section{STREAM PROCESSING FRAMEWORKS}\label{frameworks}
+%\section{STREAM PROCESSING FRAMEWORKS}\label{frameworks}
 %\textcolor{blue}{page limit = 0.5 (one full column)}
 %\textcolor{blue}{ Architectures, known features 'on the tin', Nothing about opinions/findings here}
 % push opinions/findings/reflections after the experiment results, as part of discussion or so
@@ -271,10 +304,10 @@ specifically for scientific computing workloads, has previously shown good perfo
 
 %\textcolor{blue}{building on para in intro...}
 %{\color{red}{AH: Do we need this sentence?? 
-This section introduces the two frameworks selected for study in this paper, Apache Spark and HarmonicIO.
-Apache Spark competes with other frameworks such as Flink, Flume, Heron in offering high performance at scale, with features relating to data integrity (such as tunable replication), processing guarantees, fault tolerance, checkpointing, and so on. HarmonicIO is a research prototype -- much simpler in implementation, and is built around direct use of TCP sockets for direct, high-throughput P2P communication.
+%This section introduces the two frameworks selected for study in this paper, Apache Spark and HarmonicIO.
+%Apache Spark competes with other frameworks such as Flink, Flume, Heron in offering high performance at scale, with features relating to data integrity (such as tunable replication), processing guarantees, fault tolerance, checkpointing, and so on. HarmonicIO is a research prototype -- much simpler in implementation, and is built around direct use of TCP sockets for direct, high-throughput P2P communication.
 
-\subsection{Apache Spark}
+%\subsection{Apache Spark}
 %\textcolor{blue}{page limit = 0.5 (one full column)}
 %\textcolor{blue}{ what is Apache Spark? what is its architecture?
 %what kinds of applications was this intended / most suitable for? small messages?
@@ -283,15 +316,15 @@ Apache Spark competes with other frameworks such as Flink, Flume, Heron in offer
 %We choose Spark (over Flink) because the advantages of its built-in support for ML, etc. and easier learning curve (with the APIs) outweigh the performance and fault-tolerance advantages for Apache Flink. %\textcolor{blue}{performance adv. is doubted in lit.}
 
 %such as Apache Flink, 
-Apache Spark stands out as an attractive framework for scientific computing applications with its high-level APIs, such as built-in support for scalable machine learning. 
+%Apache Spark stands out as an attractive framework for scientific computing applications with its high-level APIs, such as built-in support for scalable machine learning. 
 %Compared to Apache Flink, it also has an less steep learning curve which outweigh the performance and fault-tolerance advantages of Flink. %\textcolor{blue}{AH: This is a claim that has to be substantiated... performance adv. is doubted in lit.}
-Originally developed for batch operations, in-memory caching of intermediate results improves on the performance of Hadoop, where data is typically written to a distributed file system at each stage.
-Spark allows a more interactive user experience, with ad-hoc analysis, which was difficult with Hadoop. This smart caching behavior is combined with functionality to track the lineage of the calculations, allowing deterministic re-calculation in the event of errors and node failure, together with a host of other features, built around the Resilient Distributed Dataset (RDD)~\cite{Zaharia:2012:RDD:2228298.2228301}. 
+%Originally developed for batch operations, in-memory caching of intermediate results improves on the performance of Hadoop, where data is typically written to a distributed file system at each stage.
+%Spark allows a more interactive user experience, with ad-hoc analysis, which was difficult with Hadoop. This smart caching behavior is combined with functionality to track the lineage of the calculations, allowing deterministic re-calculation in the event of errors and node failure, together with a host of other features, built around the Resilient Distributed Dataset (RDD)~\cite{Zaharia:2012:RDD:2228298.2228301}. 
 %The core RDD Spark API ~\cite{Zaharia:2012:RDD:2228298.2228301} allows for distributed computation, whilst recording the provenance and derivation of data between calculations, thus allowing for deterministic re-computation in cases of error and node failure, with a high level API that makes such details transparent to the application developer. 
-Spark can scale successfully to 1000s of nodes~\cite{xinApacheSparkFastest2014}.
+%Spark can scale successfully to 1000s of nodes~\cite{xinApacheSparkFastest2014}.
 
 
-Spark Streaming was a later addition, leveraging the batch functionality for a streaming context by creating a new batch every few seconds (the batch interval). As with batch operations, data is further partitioned for distribution and scheduling. The Streaming API augments map/reduce operators (familiar from batch processing) with stream functionality, such as windowing. 
+%Spark Streaming was a later addition, leveraging the batch functionality for a streaming context by creating a new batch every few seconds (the batch interval). As with batch operations, data is further partitioned for distribution and scheduling. The Streaming API augments map/reduce operators (familiar from batch processing) with stream functionality, such as windowing. 
 %The framework manages parallelization and data transfer, with various guarantees for fault tolerance.
 
 %Stream processing pipelines are built from these operators, and the frameworks themselves manage the processing parallelization and data transfer -- with various guarantees in relation to fault handling. 
@@ -310,7 +343,7 @@ Spark Streaming was a later addition, leveraging the batch functionality for a s
 
 %State-of-the-art existing stream processing give us specific guarantees about error handling, and processing of messages (even in cases of node failure), are designed for small messages (metadata or analytics data originating in web and mobile applications, or log entries), high-volume and heavily optimized for performance.
 
-\subsection{HarmonicIO}
+\section{HarmonicIO}
 %\textcolor{blue}{page limit = 0.5 (one full column)}
 %\textcolor{blue}{ what is Harmonic IO? what is its architecture?
 %what kinds of applications was this intended / most suitable for?
@@ -320,7 +353,10 @@ HarmonicIO~\cite{torruangwatthanaHarmonicIOScalableData2018} is a peer-to-peer d
 %It is designed to be highly elastic, and separates the user's application from the framework through the use of docker containers.
 HarmonicIO's smart architecture will favor P2P message transfer, but fall back to a queue buffer when necessary to absorb fluctuations in input or processing rate. Messages are processed in a simple loop: pop a message from the master queue (if any exists) otherwise wait to receive a message directly from the streaming source over TCP; process it; and repeat. Per-node daemons aggregate availability information at the master, from where clients query the status of available processing engines. The master node manages the message buffer queue.
 % HarmonicIO is a low-level stream processing framework intended for scientific use cases where the messages can be processed individually; it currently has no support for calculations involving more than one message. 
-Being a research prototype, it lacks many features of more mature frameworks such as resilience, error handling, guaranteed delivery etc., and does not yet offer \emph{reduce} functionality. Yet the simplicity of the implementation makes it easily adoptable and extensible.
+
+We chose HarmonicIO for its simple P2P architecture. Its APIs are a simple abstraction around TCP sockets (in contrast to Apache Spark). Its container-based architecture provides a convenient way for scientists to encapsulate complex (and often fragile) software with a variety of dependent libraries, models and datasets. Docker containers are a useful `unit' of scientific computing code.% -- likely to be relevant as we look ahead to creating our [BLIND] SCaaS platform.
+
+Being a research prototype, it lacks many features of more mature frameworks such as resilience, error handling, guaranteed delivery etc., and offers \emph{map} but not   \emph{reduce} functionality (planned for future work). Yet the simplicity of the implementation makes it easily adoptable and extensible; and configuration is much simpler than Apache Spark. 
 
 %HarmonicIO: P2P dynamic architecture, container isolation, simple and extensible code base, elastic. 
 
@@ -411,7 +447,7 @@ Fig.~\ref{fig:prediction} illustrates how we might expect an ideal framework to 
 %Our goal is to
 %{\color{red}{AH Repetitive. Remove?? We investigate the performance of HarmonicIO and Apache Spark (under various configurations), under a full range of application loads, including those typical of more scientific use cases such as our specific application - microscopy image processing. Building on previous studies that have tended to focus on small messages, with low processing cost associated with each message, }}
 
-Varying message size (100 bytes -- 10Mb), and CPU cost for processing each message (0 -- 1 second per message)
+Varying message size (100 bytes -- 10MB), and CPU cost for processing each message (0 -- 1 second per message)
 %With our tunable experimental setup, for each iteration of the experiment, 
 %We vary (a) the size of the messages, and (b) the CPU cost per message to sweep the parameter space -- and for each parameter pair, 
 allowed us to sample the performance of the studied streaming frameworks over a parameter space with settings ranging from highly CPU-intensive workloads to highly data-movement intensive use-cases. This domain captures typical enterprise use cases, and scientific computing workloads.
@@ -425,9 +461,9 @@ allowed us to sample the performance of the studied streaming frameworks over a 
 %To build on previsou studies by building a more complete picture of the performance characteristics, 
 
 %We vary the message size (), and CPU cost ().
-The microscopy use case is a particular focus: message (image) sizes 1-10Mb, with a CPU cost profiled at around 100mS for very simple analysis (consistent with \cite{torruangwatthanaHarmonicIOScalableData2018}) -- CPU cost would depend on the specific features being extracted, and could be significantly higher.
+The microscopy use case is a particular focus: message (image) sizes 1-10MB, with a CPU cost profiled at around 100mS for very simple analysis (consistent with \cite{torruangwatthanaHarmonicIOScalableData2018}) -- CPU cost would depend on the specific features being extracted, and could be significantly higher.
 %-- in particular, at scale with large ($>$1MB), or very large (\textasciitilde10-100MB) message sizes?
-We measure maximum sustained frequency (i.e throughput) at each point (message size, CPU), for each of the framework stream source integrations explained below.%, so that we get an overview of performance limits of the various frameworks (and integrations) as a function of these input parameters.
+We measure maximum sustained frequency (i.e throughput) at each point (message size, CPU), for HarmonicIO, and each of the Spark stream source integrations explained below:%, so that we get an overview of performance limits of the various frameworks (and integrations) as a function of these input parameters.
 %The implementation of the benchmarking tools is explained in the next section.
 
 % We use the developed benchmarking tools to
@@ -448,9 +484,9 @@ We measure maximum sustained frequency (i.e throughput) at each point (message s
 
 %For a complete picture of the performance 
 
-\subsection{Apache Spark Streaming Source Integrations}
+%\subsection{Apache Spark Streaming Source Integrations}
 
-There are many possible stream integrations for Apache Spark Streaming -- we discuss some of the most common, likely to be adopted by new users:
+%There are many possible stream integrations for Apache Spark Streaming -- we discuss some of the most common, likely to be adopted by new users:
 %We exclude more complex integration options such as the \texttt{RawInputDStream} -- requiring more detailed knowledge of Spark. These input integrations were chosen:
 
 
@@ -473,8 +509,8 @@ There are many possible stream integrations for Apache Spark Streaming -- we dis
 
 \textbf{Spark + Kakfa:} Kafka is a stream processing framework in its own right: Kafka producers write messages onto one end of message queues, which are processed by Kafka \emph{consumers}. 
 %These messages queues are organized by topic, and by partition -- so that a single logical message queue can be distributed between nodes (offering resilience), with messages written to disk for durability. 
-Kafka is commonly used in conjunction with Spark Streaming in enterprise contexts, to provide a resilient and durable buffer, allowing Spark applications to be restarted without interrupting the streaming source.  
-The newer \emph{Direct DStream} integration approach with Kafka is used in this study. 
+Kafka is commonly used in conjunction with Spark Streaming in enterprise contexts, to provide a resilient and durable buffer, allowing Spark applications to be restarted without interrupting the streaming source. We deploy a single Kafka server as this most resembles the HarmonicIO deployment. 
+The newer \emph{Direct DStream} integration approach with Kafka is used in this study. Under this integration, messages are transferred directly from the Kafka server to Spark workers.
 
 \textbf{Spark + File Streaming:} Under this approach, Spark will process new files in each batch interval. % offering an ostensibly straightforward approach to integration. 
 %Rather than using HDFS (for reasons described below), 
@@ -487,7 +523,7 @@ We configure an NFS share on the streaming source node. This allows direct trans
 % For a fair comparison with HarmonicIO, we wanted to focus on direct data transfer, with simple configurations to make it possible to understand the performance characteristics. We wanted to explore use cases that are network-bound in terms of data ingress. To that end, we decided to investigate the performance of NFS shares on the streaming source node (mounted on the Spark cluster), as a way of achieving more direct file transfer, whilst integrating with Spark. 
 % Note that this approach still uses the HDFS \emph{drivers}, to work with the local file system in so-called \emph{raw} mode\footnote{without using full HDFS.}.
 % This approach more closely resembles HarmonicIO's P2P architecture, in way that allows adding and removing of streaming sources in a way that is transparent to the streaming application -- the file system can function as a layer of abstraction -- Spark can watch a folder (by repeated directory listing), within which we can mount NFS shares for different streaming sources, while the application is running. Multiple streaming sources is a use case we intend to investigate in future work. 
-We do not use HDFS, it is an distributed filesystem intended replicated storage of very large (append-only) files -- many GBs, TBs, this makes it inappropriate for the files used in this study, which are at most 10Mb. 
+We do not use HDFS, a distributed filesystem intended replicated storage of very large (append-only) files -- many GBs; TBs, this makes it inappropriate for the files used in this study, which are at most 10MB. 
 
 %Conversely, some typical integration approaches we decided not to include in this study:
 %\textbf{File Streaming (with HDFS):} HDFS is a distributed file system, its core functionality is to manage partitioning and replication of very large files across storage nodes, for read performance and durability -- constituting a distributed file system.
@@ -498,9 +534,9 @@ We do not use HDFS, it is an distributed filesystem intended replicated storage 
 %and is frequently used in conjunction with frameworks such as Spark, to act as a queue or buffer for incoming messages -- an advantage of such an architecture is that revised versions of Spark applications can be redeployed without data loss. 
 %Kafka is a complex framework in its own right, requiring deployment and configuration of services such as ZooKeeper~\cite{Junqueira:2013:ZDP:2904421}. Importantly, Kafka is intended for small message sizes\footnote{In its default configuration, it will reject any messages larger than 1MB.} -- it is a distributed message log, not a distributed file system, and will undoubtedly have its own performance characteristics which would confuse our analysis of Spark.
 
-\subsection{HarmonicIO}
+%\subsection{HarmonicIO}
 %\textcolor{blue}{ Why HarmonicIO?}
-We chose HarmonicIO for its simple P2P architecture. Its APIs are a simple abstraction around TCP sockets (in contrast to Apache Spark). Its container-based architecture provides a convenient way for scientists to encapsulate complex (and often fragile) software with a variety of dependent libraries, models and datasets. Docker containers are a useful `unit' of scientific computing code.% -- likely to be relevant as we look ahead to creating our [BLIND] SCaaS platform.
+
 
 
 
@@ -516,7 +552,7 @@ Note that neither the monitoring and throttling tool (which communicates with al
 \end{figure*}
 
 
-To explore the (message size, CPU cost per message) parameter space we developed benchmarking applications to run on Spark and HarmonicIO, able to process synthetic messages, and generate synthetic CPU load. These tools are publicly available at: \texttt{https://github.com/HASTE-project/benchmarking-tools}.
+To explore the (message size, CPU cost per message) parameter space we developed benchmarking tools\footnote{Available at: \url{https://github.com/HASTE-project/benchmarking-tools}} for Spark and HarmonicIO, able to process synthetic messages, and generate synthetic CPU load.
 %{\color{red}{AH: Does not agree with actual figure.} }
 Fig.~\ref{fig:arch-comp} shows the various pipelines showing of HarmonicIO, and Apache Spark Streaming with file, Kakfa and TCP based integrations. The arrows show the busy network communication.
 %(a) streaming server (b) a cluster of processing nodes and (c) a monitoring and throttling tool to orchestrate the experimental work, and aggregate performance metrics.
@@ -526,6 +562,8 @@ For each setup, 6 stream Processing VMs were used, each with 8 VCPUs and 16GB RA
 These resources are similar to the experimental setup of \cite{xinApacheSparkFastest2014}, where 40 cores were used.
 %We used a tenant-based private network to be consistent with throughput. 
 The maximum network bandwidth monitored using \texttt{iperf} was 1.4Gbit/s. 
+Ansible scripts used to deploy the cluster are at: \url{https://github.com/HASTE-project/ansible-benchmarking}.
+
 % ST code?
 % BB: ST: this repeats these
 %For HarmonicIO we have setup a virtual cluster of six nodes, one master and five workers nodes. 
@@ -534,7 +572,14 @@ Below, we describe the details of the experimental setup for each framework, and
 
 \subsection{Apache Spark}
 %For subsequent parameter exploration, we needed tunable message size and CPU load -- necessitating a separate simulator, and stub application. 
-We created a \emph{streaming source} application, supporting TCP, Kafka, and file-based streaming integrations for ASS. The synthetic messages contain metadata describing the CPU load, so that both parameters (CPU load and message size) can be tuned in real time via the streaming source application.
+
+
+We created a \emph{streaming source} application, supporting TCP and file-based streaming modes in ASS. 
+Each message is the CPU pause (as a string), padded up to the specified message length, so that both parameters (CPU load and message size) can be tuned via the streaming source application. 
+
+Inside the application, we used the \texttt{getThreadCpuTime()} method of the \texttt{ThreadMXBean}\footnote{\url{https://docs.oracle.com/javase/7/docs/api/java/lang/management/ThreadMXBean.html}} from JavaSE, which returns the total time spent executing by the thread in both user and system mode (excluding blocked and waiting times), polling this until the `CPU load' parameter from the message has elapsed. Hence, we simulate a CPU-intensive message processing step. Consequently, our benchmark has the effect of revealing the CPU overhead of the different frameworks and integrations. 
+
+
 %Neither mode has built-in auto-throttling (backpressure? look up docs) functionality, 
 % its unclear (to me) whether file and TCP streaming support backpressure, and if they do, how it would work in practice. Better just not to mention backpressure -- our goal is to find the max throughput.
 % Maybe bad decision? :(
@@ -643,8 +688,11 @@ Maximum throughput is reached when a bottleneck occurs somewhere in the system, 
 
 %For HarmonicIO, the maximum throughput is easier to determine, since the HarmonicIO streaming client is synchronous for message transfer (multiple client threads are used to obviate negative performance impact).
 %-- meaning that it will self-regulate. 
-In HarmonicIO, the maximum throughput is determined by measuring the time to stream and process a predefined number of messages for the given parameters.
-We created a separate benchmarking application for HarmonicIO, which reads messages in our format. As with Spark, metadata describing the amount of CPU load is embedded in each message.
+In HarmonicIO, the maximum throughput is determined by measuring the time to stream and process a predefined number of messages for the given parameters. 
+We created a separate benchmarking application for HarmonicIO, which reads messages in our format. As with Spark, metadata describing the amount of CPU load is embedded in each message. 
+The message size in the HarmonicIO benchmark application varies up to 10MB, representing the large individual messages within the scientific datasets. The range of the message sizes covers scientific datasets based on multidimensional arrays, binary blobs and text-based datasets. For CPU load, we have used an artificial workload of different durations. See section IX.
+
+
 %Each worker hosted 8 Processing Engine containers that in total contributed 40 processing slots (one for each core). %based on a cluster of $5$ workers. -- we said this above
 
 %A single client virtual machine with multi-threading application (using Python module $multiprocessing$) was used for data streaming. 
@@ -652,21 +700,75 @@ We created a separate benchmarking application for HarmonicIO, which reads messa
 %For HarmonicIO, we read from memory (pre-caching from disk) and store in MongoDB. \te
 %- HarmonicIO: multi-threaded (TODO: push to github?)
 
-
-
-
-
 \section{RESULTS}\label{results}
+
+% \begin{figure}[h]
+% %[width=0.9\textwidth]
+% \begin{center}
+% %\includegraphics[width=9cm]{images/3_cases_rgb.png}
+% \includegraphics[width=8cm]{images/best-w-freqs-cropped.png}
+% \end{center}
+% \caption{Performance of Apache Spark (under TCP, File streaming, and Kafka integrations), and HarmonicIO, by maximum message throughput frequency over the domain under study. Under each setting, the highest frequency is shown in bold, with color-coding according to which framework/integration was able to achieve the best frequency. Compare with Fig.~\ref{fig:prediction}.}
+% \label{fig:blobs}
+% \end{figure}
+
+
+%%%%%% modifications by Salman %%%%%
+\begin{table*}
+\setlength{\tabcolsep}{2pt}
+% \small
+\fontsize{8pt}{8pt}\selectfont
+\begin{center}
+\renewcommand{\arraystretch}{1.4} % Default value: 1
+\begin{tabular}{|l||c|c|c|c|c|c|c|c|}
+\hline 
+\multicolumn{9}{ |c| }{Maximum Message Frequency (Hz) [Apache Spark with TCP, Apache Spark with File streaming, Apache Spark with Kafka, and HarmonicIO]} \\
+\hline 
+CPU Cost & \multicolumn{8}{ |c| }{Message Size (bytes)} \\
+\hline
+ & 100  & 500  &  1000 &  10KB &  0.1MB  & 1.0MB & 5MB & 10MB \\ \hline \hline
+
+1.0 secs  & 14, \textbf{43}, 7, 39 & 11, \textbf{44}, 7, 40 & 12, \textbf{41}, 7, 39 & 13, 38, 8, \textbf{40} & 15, \textbf{40}, 8, 39 & -, \textbf{41}, 7, 37 & -, 17, 6, \textbf{29} & -, 11, 4, \textbf{16} \\
+\hline
+
+0.5 secs  & 30, 39, 23, \textbf{79} & 31, 43, 24, \textbf{78} & 32, 39, 26, \textbf{73} & 30, 42, 24, \textbf{76} & 31, 39, 21, \textbf{78} & -, 35, 20, \textbf{54} & -, 18, 11, \textbf{30} & -, 12, 6, \textbf{17} \\
+\hline
+
+0.2 secs  & 85, 41, 88, \textbf{185} & 83, 44, 92, \textbf{172} & 81, 39, 92, \textbf{192} & 82, 43, 90, \textbf{185} & 88, 37, 72, \textbf{166} & -, 40, 49, \textbf{121} & -, 18, 12, \textbf{28} & -, 12, 7, \textbf{15} \\
+\hline
+
+0.1 secs  & 182, 41, 201, \textbf{277} & 180, 41, 208, \textbf{238} & 164, 40, 210, \textbf{263} & 162, 38, 207, \textbf{312} & 156, 36, 163, \textbf{227} & -, 35, 63, \textbf{128} & -, 15, 12, \textbf{32} & -, 13, 7, \textbf{16} \\
+\hline
+
+0.05 secs  & 336, 39, \textbf{466}, 454 & 326, 42, \textbf{463}, 416 & 327, 40, \textbf{471}, 357 & 351, 38, 438, \textbf{454} & 306, 43, 277, \textbf{333} & -, 33, 55, \textbf{128} & -, 16, 12, \textbf{34} & -, 12, 6, \textbf{15} \\
+\hline
+
+0.02 secs  & 884, 42, \textbf{1K}, 555 & 859, 35, \textbf{1K}, 500 & 904, 37, \textbf{1K}, 454 & 838, 37, 1K, 500 & 402, 42, \textbf{587}, 500 & -, 37, 61, \textbf{125} & -, 20, 10, \textbf{32} & -, 12, 6, \textbf{16} \\
+\hline
+
+0.0 secs  & \textbf{0.32M}, 32, 49K, 625 & \textbf{86K}, 40, 63K, 625 & 22K, 40, \textbf{35K}, 625 & 5K, 38, \textbf{6K}, 555 & 504, 42, \textbf{598}, 500 & -, 34, 54, \textbf{125} & -, 15, 12, \textbf{33} & -, 12, 7, \textbf{16} \\
+\hline
+
+\end{tabular}
+\end{center}
+\caption{Maximum Message Processing Frequencies of Apache Spark (under TCP, File streaming, and Kafka integrations), and HarmonicIO; in that order. These results are visualized in Fig.~\ref{fig:blackblobs}. There is no data for Spark + TCP for message sizes of 1MB or more, as it did not perform reliably in this domain. The highest frequency in each case is shown in bold.}
+\label{table:results}
+\end{table*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{figure}[h]
 %[width=0.9\textwidth]
 \begin{center}
 %\includegraphics[width=9cm]{images/3_cases_rgb.png}
-\includegraphics[width=8cm]{images/best-w-freqs-cropped.png}
+\includegraphics[width=8.25cm]{images/4-greyscales.png}
 \end{center}
-\caption{Performance of Apache Spark (under TCP, File streaming, and Kafka integrations), and HarmonicIO, by maximum message throughput frequency over the domain under study. Under each setting, the highest frequency is shown in bold, with color-coding according to which framework/integration was able to achieve the best frequency. Compare with Fig.~\ref{fig:prediction}.}
-\label{fig:blobs}
+\caption{Performance of the frameworks and stream integrations over the domain under study. 
+The brightness represents the frequency as a fraction of the best performing framework at that position --
+completely dark areas indicate where the respective framework was the best performing. Compare with Fig.~\ref{fig:prediction}. There is no data for Spark + TCP for message sizes of 1MB or more, as it did not perform reliably in this domain.}
+\label{fig:blackblobs}
 \end{figure}
+
+
 
 % figure* for 2-col, see: https://tex.stackexchange.com/questions/30985/displaying-a-wide-figure-in-a-two-column-document
 \begin{figure*}[h]
@@ -690,25 +792,25 @@ We created a separate benchmarking application for HarmonicIO, which reads messa
 
 % Per-Framework... SUMMARIES....
 %In this section, we compare the relative performance of the frameworks with one another, and with theoretical bounds on network and CPU usage (and how well each framework is able to utilize resources in those cases), and discover trends and other characteristics across the breadth of the parameter space -- these results are discussed later, in Section~\ref{discussion}.
-The maximum frequencies achieved by each framework (and stream integration setup), according to message size and per-message CPU load, are show in Fig.~\ref{fig:blobs}, color-coded according to the best performing framework. 
+The maximum frequencies achieved by each framework (and stream integration setup), according to message size and per-message CPU load, are show in Fig.~\ref{fig:blackblobs} and Table~\ref{table:results}, color-coded according to the best performing framework. 
 A subset of these results is presented again in Fig.~\ref{fig:all-results} and Fig.~\ref{fig:result-normed}, where results for particular CPU loads are shown in relation to CPU and network-theoretical bounds.
 %In , some of these results are shown normalized as a fraction of the theoretical bound. 
 
 We summarize the results for each setup, before further discussion in relation to the intended use cases, architectures, and relation to theoretical bounds:% in the proceeding discussion section (\ref{discussion}).
 
 \textbf{Apache Spark Streaming with TCP}: 
-This integration achieves very high frequency when message size and CPU load are small, consistent with previous studies. For 100 byte messages without CPU load; the pipeline was able to process messages at frequencies approaching 320KHz, meaning around 1.6M messages were processed by Spark in a 5 second batch. This can seen in the extreme lower-left of Fig.~\ref{fig:blobs}, and the results shown in Fig.~\ref{fig:all-results}.A. 
+This integration achieves very high frequency when message size and CPU load are small, consistent with previous studies. For 100 byte messages without CPU load; the pipeline was able to process messages at frequencies approaching 320KHz, meaning around 1.6M messages were processed by Spark in a 5 second batch. This can seen in the extreme lower-left of Fig.~\ref{fig:blackblobs}, and the results shown in Fig.~\ref{fig:all-results}.A. 
 But performance degraded rapidly for larger message sizes, and under our benchmarks, it couldn't reliably handle messages larger than $10^5$ bytes at any frequency.
 
 \textbf{Apache Spark Streaming with Kafka}:
-This streaming pipeline performed well for messages less than 1MB, and CPU loads  less than 0.1 second/message, at the bottom-left of Fig.~\ref{fig:blobs}. Away from this region, performance degrades relative to other setups in this study, falling away from theoretical limits.
+This streaming pipeline performed well for messages less than 1MB, and CPU loads  less than 0.1 second/message, at the bottom-left of Fig.~\ref{fig:blackblobs}. Away from this region, performance degrades relative to other setups in this study, falling away from theoretical limits.
 
 \textbf{Apache Spark Streaming with File Streaming}: 
-This integration performed efficiently at low frequencies -- in regions tightly constrained by network and CPU-theoretic bounds (the top and right of Figs.~\ref{fig:prediction} and \ref{fig:blobs} and, and the results for higher message sizes in Fig.~\ref{fig:all-results}).
+This integration performed efficiently at low frequencies -- in regions tightly constrained by network and CPU-theoretic bounds (the top and right of Figs.~\ref{fig:prediction} and \ref{fig:blackblobs} and, and the results for higher message sizes in Fig.~\ref{fig:all-results}).
 
 \textbf{HarmonicIO}:
-Fig.~\ref{fig:blobs} shows that HIO was the best performing framework for the broad intermediate region of our study domain, 
-for medium-sized messages (larger than 1.0MB), and/or CPU loads higher than 0.05 seconds/message. It matched the performance of file-based streaming with Apache Spark for larger messages and higher CPU loads.% (the top and right edges of Fig.~\ref{fig:blobs}), and the results for larger message sizes shown in Fig.~\ref{fig:all-results}. 
+Fig.~\ref{fig:blackblobs} shows that HIO was the best performing framework for the broad intermediate region of our study domain, 
+for medium-sized messages (larger than 1.0MB), and/or CPU loads higher than 0.05 seconds/message. It matched the performance of file-based streaming with Apache Spark for larger messages and higher CPU loads.% (the top and right edges of Fig.~\ref{fig:blackblobs}), and the results for larger message sizes shown in Fig.~\ref{fig:all-results}. 
 
 \section{DISCUSSION}\label{discussion}
 
@@ -721,24 +823,25 @@ for medium-sized messages (larger than 1.0MB), and/or CPU loads higher than 0.05
 
 %There are both network- and CPU-bounds on the overall message throughput. 
 %Theoretically, 
-Maximum message throughput is bound by network and CPU bounds, which are inversely proportional to message size and CPU cost size respectively (assuming constant network speed, and number of CPU cores; respectively). The relative performance of different frameworks (and stream integrations) depend on these same parameters. Fig.~\ref{fig:blobs} shows that all frameworks also have specific, well-defined regions where they each perform the best. We discuss these regions in turn, moving outwards from the origin of Fig.~\ref{fig:blobs}.
+Maximum message throughput is bound by network and CPU bounds, which are inversely proportional to message size and CPU cost respectively (assuming constant network speed, and number of CPU cores; respectively). The relative performance of different frameworks (and stream integrations) depend on these same parameters. Fig.~\ref{fig:blackblobs} shows that all frameworks also have specific, well-defined regions where they each perform the best. We discuss these regions in turn, moving outwards from the origin of Fig.~\ref{fig:blackblobs}.
 %Looking at the figures, the performance landscape over vary message size and CPU load is complex, with each framework/integration performing well under some conditions and poorly on others:
 
 % 1 / 2
 Close to the origin, theoretical maximum message throughput is high, Fig.~\ref{fig:all-results}.A shows that for the smallest of messages, Spark with TCP streaming is able to outperform Kafka. 
 %It seems that for extremely small messages, the overheads of Kafka message handling mean it can be outperformed by more lightweight (and less resilient) handling of batches of messages in Spark. However, as Fig.~\ref{fig:all-results}.A shows, 
-For slightly larger message sizes (but less than 1MB), Kafka slightly outperforms Spark with TCP (it is better optimized for handling messages in this size range - its intended use case). For Kafka, Under the direct DStream integration with Spark, messages are transferred directly from the Kafka server to Spark workers. Yet, the Kafka server itself; having been deployed on its own machine, has theoretical network bounded throughput at half the network link speed (half the bandwidth for incoming messages, half for outgoing). Under TCP, we see a similar effect, with the spark worker nominated as receiver performing an analogous role. Consequently, Fig.~\ref{fig:all-results}.A shows that Spark with neither Kafka nor direct TCP can approach the theoretical network bound, as \emph{is} the case with other frameworks in some regions. This is consistent with the overview of the network topology shown in Fig.~\ref{fig:arch-comp}.
+For slightly larger message sizes (but less than 1MB), Kafka slightly outperforms Spark with TCP (it is better optimized for handling messages in this size range - its intended use case). Yet, the Kafka server itself; having been deployed on its own machine, has theoretical network bounded throughput at half the network link speed (half the bandwidth for incoming messages, half for outgoing). Under TCP, we see a similar effect, with the spark worker nominated as receiver performing an analogous role. Consequently, Fig.~\ref{fig:all-results}.A shows that Spark with neither Kafka nor direct TCP can approach the theoretical network bound. This is consistent with the overview of the network topology shown in Fig.~\ref{fig:arch-comp}.
 
 %Best performance for low CPU cost with small messages is Spark + TCP (raw TCP socket has highest throughput) or Kafka
 
 % 3
 %Further still... HarmonicIO
 Moving further from the origin, into the region with CPU cost of 0.2-0.5 secs/message and/or medium size (1-10MB) -- HarmonicIO performs better than the Spark integrations under this study. 
-It exhibits good performance -- transferring messages P2P makes means it is able to make very good use of bandwidth (when the messages are larger than 1MB or so); similarly, when there is considerable CPU load, its simplicity obviates spending CPU time on serialization, and passing messages multiple times among nodes. % -- and without needing to spend cores running the Kafka server.
+It exhibits good performance -- transferring messages P2P transfer yields good use of bandwidth (when the messages are larger than 1MB or so); 
+similarly, when there is considerable CPU load, its simplicity obviates spending CPU time on serialization, and passing messages multiple times among nodes. % -- and without needing to spend cores running the Kafka server.
 For large messages, and heavy CPU loads, this integration is able to approach closely to the network and CPU bounds -- its able to make cost-effective use of the hardware.
 
 % 4
-For the very largest messages, and the highest per-message CPU loads, the network and CPU bounds are very tight, and overall frequencies are very low (double digits). In these regions HarmonicIO performance is matched (or exceeded) by Spark with File Streaming. Both approaches are able to tightly approach the network and CPU theoretic bounds -- as shown in Fig.~\ref{fig:all-results}. Spark with file streaming performs slightly better in CPU-bound cases, with HarmonicIO performing slightly better in network-bound use cases (again, Fig.~\ref{fig:all-results}). 
+For the very largest messages, and the highest per-message CPU loads, the network and CPU bounds are very tight, and overall frequencies are very low (double digits). In these regions HarmonicIO performs similarly to Spark with File Streaming. Both approaches are able to tightly approach the network and CPU theoretic bounds -- as shown in Fig.~\ref{fig:all-results}. Spark with file streaming performs slightly better in CPU-bound cases, with HarmonicIO performing slightly better in network-bound use cases (again, Fig.~\ref{fig:all-results}). 
 
 \subsection{Performance, Frameworks \& Architecture}
 
@@ -766,9 +869,10 @@ With heavy CPU loads, we see reduced performance of Spark with TCP relative to t
 Kafka is the best performing framework for slightly larger messages and CPU loads of less than ~0.05 secs/message.
 %For these low CPU loads, using a few cores to run Kafka makes for better overall throughput, because Kafka is highly optimized for handling these small messages - 
 The Direct DStream integration with Spark means that messages are being transferred directly from the Kafka server to the Spark workers (see Fig.~\ref{fig:arch-comp}).  
-However, for larger messages (1-10MB), Kafka performs poorly (%this is unsurprising, 
+%However, for larger messages (1-10MB), Kafka performs poorly. %this is unsurprising, 
 %this region being outside the intended use case - 
-Kafka is not intended for handling these file sizes). When the CPU load is more considerable, for our small cluster (48 cores), the overheads of Kafka (and Spark) reduce the overall CPU core utility -- there are simply less cores available for message processing. %(which becomes the bottleneck at higher load).
+%Kafka is not intended for handling these file sizes). 
+When the CPU load is more considerable, for our small cluster (48 cores), the overheads of Kafka (and Spark) reduce the overall CPU core utility -- there are simply fewer cores available for message processing. %(which becomes the bottleneck at higher load).
 In these cases, performance is met or exceeded by HarmonicIO -- messages are transferred directly from the streaming source, so more cores are available for processing message content.
 %For very cheap messages larger than 100 bytes, Kafka shows higher performance ( explain with architecture ). 
 %With slightly higher CPU load, the picture is similar, except that for the smallest messages (100 bytes), Kafka outperforms the plain TCP socket integration. 
@@ -785,22 +889,23 @@ The results for Spark with File Streaming are quite different. The implementatio
 The \texttt{FileInputDStream} is not intended to handle the deletion of files during streaming~\footnote{\texttt{https://issues.apache.org/jira/browse/SPARK-20568}}.
 %Message frequency is bounded at around 40Hz, so for our 48 core cluster, if the CPU cost per message is lower than 0.5seconds/message, this becomes the bottleneck -- figure~\ref{fig:all-results}.A shows performance for File Streaming well below the theoretical maximum. 
 
-However, %in terms of data throughput, the integration is lightweight, and 
-NFS is a simple integration, and allows message content to be transferred directly to where its processed on the workers, see Fig.~\ref{fig:arch-comp}. Consequently, where the theoretic bound on message frequency is down to double-digit frequencies, %(both network bound and CPU bound - see figure~\ref{fig:prediction}), 
-the integration is very efficient, and is the best performing framework at very high CPU loads (the top of Fig.~\ref{fig:blobs}). Each worker directly fetches the files it needs from the streaming source machine, making good use of network bandwidth, and robustly handles messages of arbitrary size. 
+%However, %in terms of data throughput, the integration is lightweight, and 
+%NFS is a simple integration, and allows message content to be transferred directly to where its processed on the workers, see Fig.~\ref{fig:arch-comp}. Consequently, 
+Where the theoretic bound on message frequency is down to double-digit frequencies, %(both network bound and CPU bound - see figure~\ref{fig:prediction}), 
+the file system integration (backed by NFS) is very efficient, and is the best performing framework at very high CPU loads (the top of Fig.~\ref{fig:blackblobs}). Each worker directly fetches the files it needs from the streaming source machine, making good use of network bandwidth, and robustly handles messages of arbitrary size. 
 %CPU cores (and network bandwidth) are not used for forwarding (and serializing) messages, and are free to process message content.
 
 %----------------------------------------------------------------------------------------------------------------------
 
 % HARMONICIO
-HarmonicIO is the best performing framework (in terms of maximum frequency) over much of the parameter space in this study, as shown in Fig.~\ref{fig:blobs}. 
-It's peer-to-peer network topology (see Fig.~\ref{fig:arch-comp}) explains its ability to make good use of the network infrastructure, it has excellent performance in the network bound case, and its simplicity explains how this generalizes well over the rest of the domain. In scenarios with message sizes in 1-10MB range, or computationally intensive message analysis on medium clusters -- i.e. scientific computing applications, including low-latency microscopy image analysis -- overall throughput can be better using HarmonicIO. Plots in Fig.~\ref{fig:all-results} show that HarmonicIO is able to make excellent use of available network bandwidth for larger message sizes especially.
+HarmonicIO is the best performing framework (in terms of maximum frequency) over much of the parameter space in this study, as shown in Fig.~\ref{fig:blackblobs}. 
+It's P2P network topology (see Fig.~\ref{fig:arch-comp}) explains its ability to make good use of the network infrastructure, it has excellent performance in the network bound case, and its simplicity explains how this generalizes well over the rest of the domain. In scenarios with message sizes in 1-10MB range, or computationally intensive message analysis on medium clusters -- i.e. scientific computing applications, including low-latency microscopy image analysis -- overall throughput can be better using HarmonicIO. Plots in Fig.~\ref{fig:all-results} show that HarmonicIO is able to make excellent use of available network bandwidth for larger message sizes especially.
 %As is the case with Spark integrated with File Streaming, the bottleneck is not message transfer, but matching workers to messages (or files on disk): in the case of HarmonicIO, the master must be queried for each message to find an available processing slot. In practice, 
-HarmonicIO achieved a maximum message transfer rate of ~625Hz, for the smallest, lightest messages (see Fig.~\ref{fig:blobs}) -- meaning in this domain it was easily beaten by Kafka and Spark with TCP stream integration. Fig.~\ref{fig:all-results}.A clearly shows this frequency bound -- making it unsuitable for enterprise use cases with high message frequencies.
+HarmonicIO achieved a maximum message transfer rate of ~625Hz, for the smallest, lightest messages (see Fig.~\ref{fig:blackblobs}) -- meaning in this domain it was easily beaten by Kafka and Spark with TCP stream integration. Fig.~\ref{fig:all-results}.A clearly shows this frequency bound -- making it unsuitable for enterprise use cases with high message frequencies.
 %The implementation of HarmonicIO is well optimized for network transfer for larger messages, but has limited compute optimizations (lacking any asynchronous IO optimizations, for example). 
 %Not being constrained filesystem polling, it is able to match the performance of Spark with File Streaming at low frequencies in tightly-bounded regions, and outperform it at higher message frequencies in less-bounded regions.
 % H * (perf)
-HarmonicIO's dynamic P2P architecture switching between P2P and queuing modes is a simple approach to making effective use of network bandwidth: if all workers are busy, messages are sent to the queue, keeping the link to the streaming source fully utilized. 
+%HarmonicIO's dynamic P2P architecture switching between P2P and queuing modes is a simple approach to making effective use of network bandwidth: if all workers are busy, messages are sent to the queue, keeping the link to the streaming source fully utilized. 
 
 
 %The same is true of Spark with the file streaming configuration, although in that case the file system integration proves much more of a bottleneck in practice. 
@@ -820,11 +925,11 @@ HarmonicIO's dynamic P2P architecture switching between P2P and queuing modes is
 %, with simple, direct message transfer over TCP, and minimal processing overhead resulting in better CPU core utilization for the cluster as a whole.
 
 % HIO+
-%Figure~\ref{fig:blobs} shows this versatility, with HarmonicIO able to perform as well or better as the other configurations everywhere except the bottom left corner, representing high-frequency enterprise use cases. 
+%Figure~\ref{fig:blackblobs} shows this versatility, with HarmonicIO able to perform as well or better as the other configurations everywhere except the bottom left corner, representing high-frequency enterprise use cases. 
 
 
 
-%Figure~\ref{fig:blobs} shows this as a green `halo' towards the top and right hand side. 
+%Figure~\ref{fig:blackblobs} shows this as a green `halo' towards the top and right hand side. 
 
 % S+F -
 %Finally, File Streaming with Spark presented its own difficulties: the .
@@ -847,37 +952,38 @@ HarmonicIO's dynamic P2P architecture switching between P2P and queuing modes is
 
 % K/T *
 In summary, for very small messages (and lightweight processing), Spark with Kafka performs well (as does Spark with TCP streaming), and similarly for quasi-batch processing of very large files (at large polling intervals), Spark with file streaming integration performs well. These are the two typical enterprise stream analytics contexts: low-latency, high-frequency processing of small messages, and high-latency quasi-batch file-based processing of large message batches, log files, archives, etc.
-This leaves a middle region -- messages 1-10 MB, and CPU intensive processing of small messages ($>$ 0.1 sec/message): conditions typical of many scientific computing use cases, including our motivating microscopy image processing use case. In this region, HarmonicIO is able to outperform the Spark streaming approaches benchmarked in this study. 
+This leaves a middle region -- messages 1-10 MB, and CPU intensive processing of small messages ($>$ 0.1 sec/message): conditions typical of many scientific computing use cases, including our motivating use case. In this region, HarmonicIO is able to outperform the Spark streaming approaches benchmarked in this study. 
 %Spark boasts enterprise-grade resilience and durability, and a host of stream processing operators -- whilst HarmonicIO lacks all but basic support in these areas. 
 %Naturally, the disparity in features and performance characteristics is reflected in the respective implementations, and architectures (i.e. network topology).  
-Our results show how replication and message forwarding have a cost in terms of processing (cores are used for forwarding messages), and network bandwidth. Benchmarking over a spectrum of processing loads makes this visible empirically.
+%Our results show how replication and message forwarding have a cost in terms of processing (cores are used for forwarding messages), and network bandwidth. Benchmarking over a spectrum of processing loads makes this visible empirically.
 
 
+% \subsection{Features, Challenges \& Recommendations}\label{challenges}
+% % Qualitative...
+
+% This section briefly discusses the experiences with each framework setup, 
+% implementation issues, and challenges of measuring performance. Whilst HarmonicIO offers container isolation, and a simple and extensible code base, it lacks functionality for replication and fault handling with no delivery guarantees -- messages can be lost in the case of node failure. The current implementation has no reduce functionality. The simplicity of HarmonicIO means it has only a handful of configuration options.
+% S *
+%Apache Spark's features are well-documented in existing literature, and include rich Map/Reduce APIs, a variety of stream operators, and various stream integration approaches. 
+%The resilience and fault-handling of Apache Spark make it attractive %for online analysis of data streams, 
+%for scientific computing contexts, especially valuable, sensor-based data (as opposed to simulation output). Its core RDD (resilient distributed dataset) abstraction allows deterministic re-computation in the case of failure.
+%records the functions applied to the input data, in the case of error or data loss (due to node failure), the same results can be deterministically re-computed, transparently from the user's perspective. Such functionality also allows transparent caching of intermediate results (without concerns about managing the validity of cached data).
+%Conversely, ASS's rich featureset creates complexity, especially for configuration. 
+%In academic research environments, where scientists are developing their own software, the associated learning curve could be an issue. 
+%A key limitation of Spark, also relevant to scientific computing, is that the Python API is a restricted subset of the underlying Java/Scala API. HarmonicIO by contrast is implemented entirely in Python.
 
 %There are clearly caveats for this claim, discussed in the conclusions (section~\ref{conc}).
 
 %Whilst some effort was made to optimize the configuration of Spark, 
 
 % T *
-%Overall, Spark with TCP performs well for small messages and a low-cost map function -- the typical analytics use case, whilst Spark with file streaming utilizes hardware more effectively, when network and CPU load put a low bound on overall frequency. However, as Figure~\ref{fig:blobs} shows, there is an intermediate sub-domain of cases where neither Spark configuration performs particularly well. Our microscopy use case with messages of size 1-10Mb, and high processing costs falls in this domain.
+%Overall, Spark with TCP performs well for small messages and a low-cost map function -- the typical analytics use case, whilst Spark with file streaming utilizes hardware more effectively, when network and CPU load put a low bound on overall frequency. However, as Figure~\ref{fig:blackblobs} shows, there is an intermediate sub-domain of cases where neither Spark configuration performs particularly well. Our microscopy use case with messages of size 1-10Mb, and high processing costs falls in this domain.
 
 
-\subsection{Features, Challenges \& Recommendations}\label{challenges}
-% Qualitative...
 
-This section briefly discusses the experiences with each framework setup, 
-implementation issues, and challenges of measuring performance. Whilst HarmonicIO offers container isolation, and a simple and extensible code base, it lacks functionality for replication and fault handling with no delivery guarantees -- messages can be lost in the case of node failure. The current implementation has no reduce functionality. The simplicity of HarmonicIO means it has only a handful of configuration options.
-% S *
-%Apache Spark's features are well-documented in existing literature, and include rich Map/Reduce APIs, a variety of stream operators, and various stream integration approaches. 
-%The resilience and fault-handling of Apache Spark make it attractive %for online analysis of data streams, 
-%for scientific computing contexts, especially valuable, sensor-based data (as opposed to simulation output). Its core RDD (resilient distributed dataset) abstraction allows deterministic re-computation in the case of failure.
-%records the functions applied to the input data, in the case of error or data loss (due to node failure), the same results can be deterministically re-computed, transparently from the user's perspective. Such functionality also allows transparent caching of intermediate results (without concerns about managing the validity of cached data).
-Conversely, ASS's rich featureset creates complexity, especially for configuration. 
-%In academic research environments, where scientists are developing their own software, the associated learning curve could be an issue. 
-%A key limitation of Spark, also relevant to scientific computing, is that the Python API is a restricted subset of the underlying Java/Scala API. HarmonicIO by contrast is implemented entirely in Python.
 
 \section{CONCLUSIONS}\label{conc}
-This study has confirmed Spark's excellent performance, consistent with earlier studies, albeit for use cases with small message size, and low message processing cost -- and quasi-batch loads at low frequencies. But, we also find that these `islands' of excellent performance do not generalize across the wider domain of use cases we studied. In particular, it was difficult for Spark to achieve good performance in the 1MB-10MB message size range (typical of microscopy image analysis, for example). %, using the stream integration approaches we studied. 
+This study has confirmed Spark's excellent performance, consistent with earlier studies, albeit for use cases with small message size, and low message processing cost -- and quasi-batch loads at low frequencies. But, we also find that these `islands' of excellent performance do not generalize across the wider domain of use cases we studied. In particular, it was difficult for Spark to achieve good performance in the 1MB-10MB message size range (typical of microscopy image analysis, for example), with the integrations chosen for this study. %, using the stream integration approaches we studied. 
 Our results have shown the importance of choosing the a stream source integration appropriate for the message size and required performance.
 
 By contrast, HarmonicIO performs well in this region, with good hardware utilization at low frequencies -- whilst not matching Spark for maximum frequency for the small message/cheap map function use case. Its simplicity makes its performance less sensitive to configuration settings, and parameters of the application load. Its lack of replication (and fault tolerance) allows for better throughput in some scenarios, but makes it unsuitable for handling valuable data not replicated elsewhere. Where datasets are generated deterministically, for numerical simulations for example, this may be less of a concern.
@@ -902,7 +1008,7 @@ By contrast, HarmonicIO performs well in this region, with good hardware utiliza
 %The key argument is not about absolute performance: 
 %it is that 
 %But, 
-\emph{Out of the box} HarmonicIO outperforms many typical (or easily adopted) stream integrations with Spark in the intermediate region -- atypical of enterprise use cases for which Spark (and common stream integrations) are intended, and that this performance is robust over a greater domain (of message size, processing cost). This is in contrast to highly-tuned Spark deployments, which are likely to give high performance in perhaps narrower domains. HarmonicIO is sometimes able to achieve better (and more robust) performance because of its simplicity and lack of extensive functionality, making it much more lightweight -- and able to achieve better hardware utilization in some scenarios.
+\emph{Out of the box} HarmonicIO outperforms the Spark stream integrations our intermediate region -- atypical of enterprise use cases for which Spark (and its common stream integrations) are intended, and that this performance is robust over a greater domain (of message size, processing cost). This is in contrast to highly-tuned Spark deployments, which are likely to give high performance in perhaps narrower domains. HarmonicIO is sometimes able to achieve better (and more robust) performance because of its simplicity and lack of extensive functionality, making it much more lightweight -- and able to achieve better hardware utilization in some scenarios.
 %No doubt other integration approaches would perform well, but such low-level integrations are attractive for SC use cases, because they minimize engineering costs, as they don't require substantial modifications to existing applications.
 
 This paper has quantified the use cases where each framework integration can perform at or near theoretical bounds, and where each may perform poorly. We've highlighted key features differences between the frameworks. We hope our findings prove useful 
@@ -928,8 +1034,9 @@ to designers of atypical stream processing applications, particularly within sci
 %\textcolor{blue}{which brings us to the more abstract open problem...}
 
 %More interestingly, 
-Our goal is to develop a SCaaS platform for %both edge- and cluster- (and indeed fog-) based 
-scientific computing. The challenge is to combine the features of Spark and the robust performance of HarmonicIO into a single platform, or indeed investigate whether this is feasible. 
+Our goal is to develop a SCaaS platform, %for %both edge- and cluster- (and indeed fog-) based 
+%scientific computing. 
+the challenge is to combine the features of Spark and the robust performance of HarmonicIO into a single platform, or indeed investigate whether this is feasible. 
 
 %Under such a system, the user would express the trade-offs between say, performance, durability and economic cost that they desire. 
 
