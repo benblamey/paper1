@@ -1,4 +1,4 @@
-\documentclass[conference]{IEEEtran}
+\documentclass[letterpaper,conference]{IEEEtran}
 %\pdfoutput=0 % force latex (not pdflatex) -- to be able to include .eps images
 % (automated conversion is disabled for arxiv)
 
@@ -156,7 +156,7 @@ excellent performance, scalability, data security, processing guarantees, and ef
 %The core RDD Spark API ~\cite{Zaharia:2012:RDD:2228298.2228301} allows for distributed computation, whilst recording the provenance and derivation of data between calculations, thus allowing for deterministic re-computation in cases of error and node failure, with a high level API that makes such details transparent to the application developer. 
 
 
-Previous studies have shown that these frameworks are capable of processing message streams on the order of 1 million or more messages per second, but focus on enterprise use cases with textual rather than binary content, and of message size perhaps a few KB. Additionally, the computational cost of processing an individual message may be relatively small (e.g. parsing JSON, and applying some business logic). By contrast, in scientific computing domains messages can be much larger (order of several MB).
+Previous studies have shown that these frameworks are capable of processing message streams on the order of 1 million or more messages per second, but focus on enterprise use cases with textual rather than binary content, and of message size perhaps a few KB. Additionally, the computational cost of processing an individual message may be relatively small (e.g. parsing JSON, and applying some business logic). By contrast, in scientific computing domains messages can be much larger (order of several MB, in medical imaging and systems biology applications~\cite{blameyAdaptingSecretaryHiring2019}). In other scientific computing applications, message sizes can be smaller \cite{CharacterizationDOEMiniapps}.
 
 Due to the different design priorities for streaming frameworks, a single benchmark will not be adequate to cover various features. However, an alternative approach is to use a standard use case to compare different frameworks. The presented study highlights the needs of scientific communities, importance of streaming frameworks for scientific workloads and the difference in the inherent nature of the scientific datasets as compared to the enterprise context.
 
@@ -194,7 +194,7 @@ Thereby, we investigate how well the performance of enterprise stream processing
 %We undertook performance benchmarking of Apache Spark Streaming (ASS), in various configurations, varying the message size and the computational cost of processing each message -- simulating a wide spectrum of use cases, expanding on previous studies.
 %, which have focused on particular use cases: small message sizes, and small message processing costs -- this paper investigates how the performance of Spark with such applications extends to other use cases -- particularly network-bound use cases -- and indeed how frameworks with other architectures and implementation compare. 
 
-For comparison, we measured the performance of HarmonicIO~\cite{torruangwatthanaHarmonicIOScalableData2018} -- a research prototype with a which has a P2P-based architecture, under the same conditions. 
+For comparison, we measured the performance of HarmonicIO~\cite{torruangwatthanaHarmonicIOScalableData2018a} -- a research prototype with a which has a P2P-based architecture, under the same conditions. 
 % we're simulating stream processing applications, with tunable CPU load, and tunable message size.
 %{\color{green}{Two main contributions:}}
 This paper contributes:
@@ -226,7 +226,7 @@ with tunable message size and CPU load per message -- to explore this domain as 
 High-throughput ~\cite{wollmanHighThroughputMicroscopy2007}, and high-content imaging (HCI) experiments are highly automated experimental setups which are used to screen molecular libraries and assess the effects of compounds on cells using microscopy imaging. Work on smart cloud systems for prioritizing and organizing data from these experiments is our motivation for considering streaming applications where messages are relatively large binary objects (BLOBs) and where each processing task can be quite CPU intensive.
 
 % BLIND
-%In the HASTE project\footnote{\texttt{http://haste.reserach.it.uu.se}} -- a collaboration between Uppsala University, Stockholm University, Vironova AB and AstraZeneca, we are investigating methodology for near real-time filtering and control of image streams from such HCI platforms. 
+In the HASTE project\footnote{\texttt{http://haste.reserach.it.uu.se}} -- a collaboration between Uppsala University, Stockholm University, Vironova AB and AstraZeneca, we are investigating methodology for near real-time filtering and control of image streams from such HCI platforms. 
 
 
 %Microscopy image analysis is a research domain of its own (especially within biosciences, and many other disciplines), with a huge variety of image analysis techniques employed for different image resolutions and applications (tissues, cells, etc.), and an extensive history of software tools and frameworks exist to assist and automate such analysis (see \cite{schindelinFijiOpenSource2012} for an overview). Yet, the approach is generally \emph{offline} -- analyzing batches of images after they have been collected.
@@ -288,7 +288,7 @@ Marcu et. al. (2016)\nocite{marcuSparkFlinkUnderstanding2016} offer a comparison
 
 HarmonicIO, a research prototype streaming framework with a peer-to-peer architecture, developed 
 % as part of the HASTE project BLIND
-specifically for scientific computing workloads, has previously shown good performance messages in the 1-10MB range \cite{torruangwatthanaHarmonicIOScalableData2018}. To the authors' knowledge there is no existing work benchmarking stream processing with Apache Spark, or related frameworks, with messages larger than a few KB, and with map stages which are computationally expensive.
+specifically for scientific computing workloads, has previously shown good performance messages in the 1-10MB range \cite{torruangwatthanaHarmonicIOScalableData2018a}. To the authors' knowledge there is no existing work benchmarking stream processing with Apache Spark, or related frameworks, with messages larger than a few KB, and with map stages which are computationally expensive.
 % than tokenization, JSON parsing, etc.
 
 %Our benchmarking approach differs from these previous studies in that we look at performance characteristics as a continuum over the message size and map-function-cost parameter space. This allows us to reason about how variations in message size and processing load can be expected to affect performance. We compare Apache Spark (under various integration approaches) with HarmonicIO across this domain, to get an overview of performance characteristics as a function of these parameters.
@@ -349,7 +349,7 @@ specifically for scientific computing workloads, has previously shown good perfo
 %what kinds of applications was this intended / most suitable for?
 %large messages? many sources?}
 
-HarmonicIO~\cite{torruangwatthanaHarmonicIOScalableData2018} is a peer-to-peer distributed processing framework, intended for high throughput of medium and large messages. 
+HarmonicIO~\cite{torruangwatthanaHarmonicIOScalableData2018a} is a peer-to-peer distributed processing framework, intended for high throughput of medium and large messages. 
 %It is designed to be highly elastic, and separates the user's application from the framework through the use of docker containers.
 HarmonicIO's smart architecture will favor P2P message transfer, but fall back to a queue buffer when necessary to absorb fluctuations in input or processing rate. Messages are processed in a simple loop: pop a message from the master queue (if any exists) otherwise wait to receive a message directly from the streaming source over TCP; process it; and repeat. Per-node daemons aggregate availability information at the master, from where clients query the status of available processing engines. The master node manages the message buffer queue.
 % HarmonicIO is a low-level stream processing framework intended for scientific use cases where the messages can be processed individually; it currently has no support for calculations involving more than one message. 
@@ -410,6 +410,8 @@ Fig.~\ref{fig:prediction} illustrates how we might expect an ideal framework to 
 
 \textbf{C - Small messages, small processing cost}: In this regime processing frequency should be high. This region will expose any limitations on the absolute maximum message frequency for the particular integration and thus may be `framework bound'. Well-performing frameworks may be able to approach the network bounds; with very high frequencies. This regime would be typical for the type of enterprise applications studied in previous benchmarks.% such as analysis of social media streams.
 
+\textbf{A-B Boundary Region - Large messages, large processing costs}: Near this boundary (indicated by the dotted line), processing frequency will be low. The large message size means that network speed will bound the overall frequency, whilst high processing costs means that CPU load will also bound the message frequency. Theoretically, the exists a boundary where these two bounds are equal. Overheads in network communication and CPU load will influence exactly where this lies. 
+
 %the framework configurations themselves will the 
 %\end{itemize}
 
@@ -461,9 +463,9 @@ allowed us to sample the performance of the studied streaming frameworks over a 
 %To build on previsou studies by building a more complete picture of the performance characteristics, 
 
 %We vary the message size (), and CPU cost ().
-The microscopy use case is a particular focus: message (image) sizes 1-10MB, with a CPU cost profiled at around 100mS for very simple analysis (consistent with \cite{torruangwatthanaHarmonicIOScalableData2018}) -- CPU cost would depend on the specific features being extracted, and could be significantly higher.
+The microscopy use case is a particular focus: message (image) sizes 1-10MB, with a CPU cost profiled at around 100mS for very simple analysis (consistent with \cite{torruangwatthanaHarmonicIOScalableData2018a}) -- CPU cost would depend on the specific features being extracted, and could be significantly higher.
 %-- in particular, at scale with large ($>$1MB), or very large (\textasciitilde10-100MB) message sizes?
-We measure maximum sustained frequency (i.e throughput) at each point (message size, CPU), for HarmonicIO, and each of the Spark stream source integrations explained below:%, so that we get an overview of performance limits of the various frameworks (and integrations) as a function of these input parameters.
+We measure maximum sustained frequency (i.e throughput, messages per second) at each point (message size, CPU), for HarmonicIO, and each of the Spark stream source integrations explained below:%, so that we get an overview of performance limits of the various frameworks (and integrations) as a function of these input parameters.
 %The implementation of the benchmarking tools is explained in the next section.
 
 % We use the developed benchmarking tools to
@@ -524,6 +526,7 @@ We configure an NFS share on the streaming source node. This allows direct trans
 % Note that this approach still uses the HDFS \emph{drivers}, to work with the local file system in so-called \emph{raw} mode\footnote{without using full HDFS.}.
 % This approach more closely resembles HarmonicIO's P2P architecture, in way that allows adding and removing of streaming sources in a way that is transparent to the streaming application -- the file system can function as a layer of abstraction -- Spark can watch a folder (by repeated directory listing), within which we can mount NFS shares for different streaming sources, while the application is running. Multiple streaming sources is a use case we intend to investigate in future work. 
 We do not use HDFS, a distributed filesystem intended replicated storage of very large (append-only) files -- many GBs; TBs, this makes it inappropriate for the files used in this study, which are at most 10MB. 
+Indeed, other distributed filesystems wouldn't offer us the P2P message transfer. Nor did we not use Cassandra, a distributed wide-column store, as we exceed the "single digits of MB" being suggested as a sensible limit~\cite{CassandraLimitationsCASSANDRA2Apache}. 
 
 %Conversely, some typical integration approaches we decided not to include in this study:
 %\textbf{File Streaming (with HDFS):} HDFS is a distributed file system, its core functionality is to manage partitioning and replication of very large files across storage nodes, for read performance and durability -- constituting a distributed file system.
@@ -568,7 +571,7 @@ Ansible scripts used to deploy the cluster are at: \url{https://github.com/HASTE
 % BB: ST: this repeats these
 %For HarmonicIO we have setup a virtual cluster of six nodes, one master and five workers nodes. 
 %Each node in the cluster was a $ssc.xlarge$ virtual machine consisted of 8 VCPUs, 16GB RAM and 160GB local disk. 
-Below, we describe the details of the experimental setup for each framework, and the approach used for determining the maximum frequency throughput.
+Below, we describe the details of the experimental setup for each framework, and the approach used for determining the maximum frequency message throughput.
 
 \subsection{Apache Spark}
 %For subsequent parameter exploration, we needed tunable message size and CPU load -- necessitating a separate simulator, and stub application. 
@@ -746,12 +749,12 @@ CPU Cost & \multicolumn{8}{ |c| }{Message Size (bytes)} \\
 0.02 secs  & 884, 42, \textbf{1K}, 555 & 859, 35, \textbf{1K}, 500 & 904, 37, \textbf{1K}, 454 & 838, 37, 1K, 500 & 402, 42, \textbf{587}, 500 & -, 37, 61, \textbf{125} & -, 20, 10, \textbf{32} & -, 12, 6, \textbf{16} \\
 \hline
 
-0.0 secs  & \textbf{0.32M}, 32, 49K, 625 & \textbf{86K}, 40, 63K, 625 & 22K, 40, \textbf{35K}, 625 & 5K, 38, \textbf{6K}, 555 & 504, 42, \textbf{598}, 500 & -, 34, 54, \textbf{125} & -, 15, 12, \textbf{33} & -, 12, 7, \textbf{16} \\
+0.0$\dagger$ secs  & \textbf{0.32M}, 32, 49K, 625 & \textbf{86K}, 40, 63K, 625 & 22K, 40, \textbf{35K}, 625 & 5K, 38, \textbf{6K}, 555 & 504, 42, \textbf{598}, 500 & -, 34, 54, \textbf{125} & -, 15, 12, \textbf{33} & -, 12, 7, \textbf{16} \\
 \hline
 
 \end{tabular}
 \end{center}
-\caption{Maximum Message Processing Frequencies of Apache Spark (under TCP, File streaming, and Kafka integrations), and HarmonicIO; in that order. These results are visualized in Fig.~\ref{fig:blackblobs}. There is no data for Spark + TCP for message sizes of 1MB or more, as it did not perform reliably in this domain. The highest frequency in each case is shown in bold.}
+\caption{Maximum Message Processing Frequencies of Apache Spark (under TCP, File streaming, and Kafka integrations), and HarmonicIO; in that order. These results are visualized in Fig.~\ref{fig:blackblobs}. There is no data for Spark + TCP for message sizes of 1MB or more, as it did not perform reliably in this domain. The highest message frequency in each case is shown in bold. $\dagger$ 0.0 denotes nil CPU load.}
 \label{table:results}
 \end{table*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -763,8 +766,8 @@ CPU Cost & \multicolumn{8}{ |c| }{Message Size (bytes)} \\
 \includegraphics[width=8.25cm]{images/4-greyscales.png}
 \end{center}
 \caption{Performance of the frameworks and stream integrations over the domain under study. 
-The brightness represents the frequency as a fraction of the best performing framework at that position --
-completely dark areas indicate where the respective framework was the best performing. Compare with Fig.~\ref{fig:prediction}. There is no data for Spark + TCP for message sizes of 1MB or more, as it did not perform reliably in this domain.}
+The brightness represents the message frequency as a fraction of the best performing framework at that position --
+completely dark areas indicate where the respective framework was the best performing, lighter areas indicate lower message frequency. Compare with Fig.~\ref{fig:prediction}. There is no data for Spark + TCP for message sizes of 1MB or more, as it did not perform reliably in this domain.}
 \label{fig:blackblobs}
 \end{figure}
 
